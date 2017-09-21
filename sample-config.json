@@ -1,0 +1,32 @@
+{
+  "bridge": {
+    "name": "Nature Remo",
+    "username": "CC:22:3D:E3:CE:30",
+    "port": 51830,
+    "pin": "111-11-111"
+  },
+
+  "description": "Nature Remo Sample",
+
+  "accessories": [
+    {
+      "name": "Lamp A",
+      "accessory": "NatureRemo",
+      "host": "Remo-XXXX.local",
+      "path": "/messages",
+      "delay": "0",
+      "on": { "format": "us", "freq": 38, "data": [] },
+      "off": { "format": "us", "freq": 38, "data": [] }
+    },
+    {
+      "name": "Lamp B",
+      "accessory": "NatureRemo",
+      "host": "Remo-XXXX.local",
+      "path": "/messages",
+      "delay": "800",
+      "on": { "format": "us", "freq": 38, "data": [] },
+      "off": { "format": "us", "freq": 38, "data": [] }
+    }
+  ],
+  "platforms": []
+}
