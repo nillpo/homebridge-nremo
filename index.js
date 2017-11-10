@@ -15,6 +15,8 @@ class RemoAccessory {
     this.switchService = new Service.Switch(this.name);
     this.informationService = new Service.AccessoryInformation();
     this.config = config;
+    this.order_on = config.command_order[0];
+    this.order_off = config.command_order[1];
   }
 
   request(command, delay) {
