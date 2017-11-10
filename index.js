@@ -5,11 +5,7 @@ let Characteristic;
 module.exports = homebridge => {
   Service = homebridge.hap.Service;
   Characteristic = homebridge.hap.Characteristic;
-  homebridge.registerAccessory(
-    'homebridge-nremo',
-    'NatureRemo',
-    RemoAccessory
-  );
+  homebridge.registerAccessory('homebridge-nremo', 'NatureRemo', RemoAccessory);
 };
 
 class RemoAccessory {
@@ -21,7 +17,7 @@ class RemoAccessory {
     this.config = config;
   }
 
-  request(command) {
+  request(command, delay) {
     const options = {
       host: this.config['host'],
       path: this.config['path'],
@@ -30,21 +26,28 @@ class RemoAccessory {
         'X-Requested-With': 'curl',
         'Content-Type': 'application/json',
         'Content-Length': JSON.stringify(this.config[command]).length
-      }
+      },
+      timeout: 2500
     };
 
     return new Promise((resolve, reject) => {
       let data = '';
       const req = http.request(options, response => {
         if (response.statusCode != 200) {
-          reject(new Error(resolve.statusCode));
+          reject(new Error(response.statusCode));
         }
         response.on('data', chunk => {
           data += chunk.toString();
         });
         response.on('end', () => {
-          resolve({ status: response.statusCode, response: data });
+          setTimeout(
+            () => resolve({ status: response.statusCode, response: data }),
+            delay
+          );
         });
+      });
+      req.on('timeout', () => {
+        reject(new Error('Request Timeout'));
       });
       req.on('error', error => {
         reject(error);
@@ -54,27 +57,30 @@ class RemoAccessory {
     });
   }
 
-  setState(inputSwitchState, next) {
-    this.log(`Swtich: ${inputSwitchState}`);
+  async setState(input_switch_state, next) {
+    this.log(`Swtich: ${input_switch_state}`);
 
-    let command;
-    if (inputSwitchState) {
-      command = 'on';
+    let command_order;
+    if (input_switch_state) {
+      command_order = 'on';
     } else {
-      command = 'off';
+      command_order = 'off';
     }
+    const pre = 'order_' + command_order;
 
-    setTimeout(() => {
-      this.request(command)
-        .then(status => {
-          this.log(`status code:${status.status} ${status.response}`);
-          next();
-        })
-        .catch(error => {
-          this.log(error);
-          next(error);
-        });
-    }, this.config['delay']);
+    try {
+      for (let i = 0; i < this[pre][command_order].length; i++) {
+        const response = await this.request(
+          this[pre][command_order][i],
+          this.config.delay
+        );
+        this.log(`${this[pre][command_order][i]}: ${response.status}`);
+      }
+      next();
+    } catch (error) {
+      this.log(error.message);
+      next(error);
+    }
   }
 
   getServices() {

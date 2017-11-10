@@ -15,7 +15,8 @@ module.exports = {
     "no-lonely-if": "error",
     "no-tabs": "error",
     "prefer-const": "error",
-    "no-console": "off"
+    "no-console": "off",
+    "quotes": ["error", "single"]
   }
 };
 
