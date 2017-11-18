@@ -19,7 +19,7 @@ class RemoAccessory {
     this.order_off = config.command_order[1];
   }
 
-  request(command, delay) {
+  request(command, delayBefore = 0, delayAfter = 0) {
     const options = {
       host: this.config['host'],
       path: this.config['path'],
@@ -32,31 +32,35 @@ class RemoAccessory {
       timeout: 2500
     };
 
-    return new Promise((resolve, reject) => {
-      let data = '';
-      const req = http.request(options, response => {
-        if (response.statusCode != 200) {
-          reject(new Error(response.statusCode));
-        }
-        response.on('data', chunk => {
-          data += chunk.toString();
+    return Promise.resolve()
+      .then(() => new Promise((resolve) => {
+        setTimeout(resolve, delayBefore);
+      }))
+      .then(() => new Promise((resolve, reject) => {
+        let data = '';
+        const req = http.request(options, response => {
+          if (response.statusCode != 200) {
+            reject(new Error(response.statusCode));
+          }
+          response.on('data', chunk => {
+            data += chunk.toString();
+          });
+          response.on('end', () => {
+            setTimeout(
+              () => resolve({ status: response.statusCode, response: data }),
+              delayAfter
+            );
+          });
         });
-        response.on('end', () => {
-          setTimeout(
-            () => resolve({ status: response.statusCode, response: data }),
-            delay
-          );
+        req.on('timeout', () => {
+          reject(new Error('Request Timeout'));
         });
-      });
-      req.on('timeout', () => {
-        reject(new Error('Request Timeout'));
-      });
-      req.on('error', error => {
-        reject(error);
-      });
-      req.write(JSON.stringify(this.config[command]));
-      req.end();
-    });
+        req.on('error', error => {
+          reject(error);
+        });
+        req.write(JSON.stringify(this.config[command]));
+        req.end();
+      }));
   }
 
   async setState(input_switch_state, next) {
@@ -74,7 +78,8 @@ class RemoAccessory {
       for (let i = 0; i < this[pre][command_order].length; i++) {
         const response = await this.request(
           this[pre][command_order][i],
-          this.config.delay
+          this.config.delayBefore,
+          this.config.delayAfter
         );
         this.log(`${this[pre][command_order][i]}: ${response.status}`);
       }
