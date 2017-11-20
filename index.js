@@ -1,4 +1,5 @@
 const http = require('http');
+const PromiseRetry = require('./lib/promiseretry');
 let Service;
 let Characteristic;
 
@@ -19,7 +20,7 @@ class RemoAccessory {
     this.order_off = config.command_order[1];
   }
 
-  request(command, delayAfter = 0) {
+  request(command, delayAfter = 0, timeout = 2000) {
     const options = {
       host: this.config['host'],
       path: this.config['path'],
@@ -29,7 +30,7 @@ class RemoAccessory {
         'Content-Type': 'application/json',
         'Content-Length': JSON.stringify(this.config[command]).length
       },
-      timeout: 2500
+      timeout: timeout
     };
 
     return new Promise((resolve, reject) => {
@@ -42,10 +43,9 @@ class RemoAccessory {
           data += chunk.toString();
         });
         response.on('end', () => {
-          setTimeout(
-            () => resolve({ status: response.statusCode, response: data }),
-            delayAfter
-          );
+          setTimeout(() => {
+            resolve({ status: response.statusCode, response: data });
+          }, delayAfter);
         });
       });
       req.on('timeout', () => {
@@ -70,16 +70,24 @@ class RemoAccessory {
     }
     const pre = 'order_' + command_order;
 
-    await new Promise(
-      (resolve) => setTimeout(resolve, this.config.delayBefore || 0)
+    await new Promise(resolve =>
+      setTimeout(resolve, this.config.delayBefore || 0)
     );
 
     try {
       for (let i = 0; i < this[pre][command_order].length; i++) {
-        const response = await this.request(
-          this[pre][command_order][i],
-          this.config.delayAfter
+        const promise = new PromiseRetry(
+          this.config.retry,
+          this.config.retry_interval
         );
+
+        const response = await promise.run(() => {
+          return this.request(
+            this[pre][command_order][i],
+            this.config.delayAfter,
+            this.config.timeout
+          );
+        });
         this.log(`${this[pre][command_order][i]}: ${response.status}`);
       }
       next();
