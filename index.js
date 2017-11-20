@@ -19,7 +19,7 @@ class RemoAccessory {
     this.order_off = config.command_order[1];
   }
 
-  request(command, delay) {
+  request(command, delayAfter = 0) {
     const options = {
       host: this.config['host'],
       path: this.config['path'],
@@ -44,7 +44,7 @@ class RemoAccessory {
         response.on('end', () => {
           setTimeout(
             () => resolve({ status: response.statusCode, response: data }),
-            delay
+            delayAfter
           );
         });
       });
@@ -70,11 +70,15 @@ class RemoAccessory {
     }
     const pre = 'order_' + command_order;
 
+    await new Promise(
+      (resolve) => setTimeout(resolve, this.config.delayBefore || 0)
+    );
+
     try {
       for (let i = 0; i < this[pre][command_order].length; i++) {
         const response = await this.request(
           this[pre][command_order][i],
-          this.config.delay
+          this.config.delayAfter
         );
         this.log(`${this[pre][command_order][i]}: ${response.status}`);
       }
