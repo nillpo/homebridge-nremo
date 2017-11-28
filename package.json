@@ -3,7 +3,7 @@
   "keywords": [
     "homebridge-plugin"
   ],
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Nature Remo Plugin for homebridge",
   "main": "index.js",
   "scripts": {
